@@ -1,4 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+function useWindowWidth() {
+  const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 800);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return width;
+}
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const HABITS = [
@@ -279,6 +289,8 @@ function EditableMealCard({ mealKey, items, color, time, label, dateKey, onSave 
 }
 
 export default function Dashboard() {
+  const width = useWindowWidth();
+  const isMobile = width < 640;
   const [tab, setTab] = useState("today");
   const [calDateOffset, setCalDateOffset] = useState(0);
   const [habits, setHabits] = useState(() => load("j_habits", {}));
@@ -420,19 +432,19 @@ export default function Dashboard() {
   const selectedDay = MAY_PLAN.find(d => d.day === selectedMayDay) || MAY_PLAN.find(d => d.date === todayKey) || MAY_PLAN[0];
 
   const S = {
-    app: { background:"#080808", minHeight:"100vh", color:"#f0ede8", fontFamily:"system-ui,sans-serif", fontSize:14 },
-    hdr: { background:"rgba(8,8,8,0.97)", borderBottom:"1px solid #1e1e1e", padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100 },
-    nav: { display:"flex", borderBottom:"1px solid #1e1e1e", padding:"0 20px", overflowX:"auto" },
-    navBtn: (a) => ({ background:"none", border:"none", borderBottom:a?"2px solid #00e676":"2px solid transparent", color:a?"#00e676":"#555", fontFamily:"monospace", fontSize:10, letterSpacing:"0.12em", padding:"11px 14px", cursor:"pointer", whiteSpace:"nowrap" }),
-    pg: { padding:"16px 20px", maxWidth:1300, margin:"0 auto" },
-    card: { background:"#111", border:"1px solid #1e1e1e", borderRadius:6, padding:16, marginBottom:14 },
-    lbl: { fontFamily:"monospace", fontSize:9, letterSpacing:"0.18em", color:"#444", marginBottom:10, textTransform:"uppercase" },
-    kpi: { background:"#111", border:"1px solid #1e1e1e", borderRadius:6, padding:16 },
-    g2: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 },
-    g4: { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14 },
-    g21: { display:"grid", gridTemplateColumns:"2fr 1fr", gap:14 },
-    hab: (d) => ({ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", borderRadius:5, border:`1px solid ${d?"#00e676":"#1e1e1e"}`, background:d?"#0d2a1a":"#0f0f0f", cursor:"pointer", transition:"all 0.15s", userSelect:"none" }),
-    chk: (d) => ({ width:18, height:18, borderRadius:3, border:`2px solid ${d?"#00e676":"#333"}`, background:d?"#00e676":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:"#080808", flexShrink:0 }),
+    app: { background:"#080808", minHeight:"100vh", color:"#f0ede8", fontFamily:"system-ui,sans-serif", fontSize: isMobile ? 13 : 14 },
+    hdr: { background:"rgba(8,8,8,0.97)", borderBottom:"1px solid #1e1e1e", padding: isMobile ? "10px 12px" : "14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100, flexWrap: isMobile ? "wrap" : "nowrap", gap: isMobile ? 8 : 0 },
+    nav: { display:"flex", borderBottom:"1px solid #1e1e1e", padding: isMobile ? "0 8px" : "0 20px", overflowX:"auto", WebkitOverflowScrolling:"touch" },
+    navBtn: (a) => ({ background:"none", border:"none", borderBottom:a?"2px solid #00e676":"2px solid transparent", color:a?"#00e676":"#555", fontFamily:"monospace", fontSize: isMobile ? 9 : 10, letterSpacing:"0.08em", padding: isMobile ? "10px 10px" : "11px 14px", cursor:"pointer", whiteSpace:"nowrap" }),
+    pg: { padding: isMobile ? "12px" : "16px 20px", maxWidth:1300, margin:"0 auto" },
+    card: { background:"#111", border:"1px solid #1e1e1e", borderRadius:6, padding: isMobile ? 12 : 16, marginBottom:12 },
+    lbl: { fontFamily:"monospace", fontSize:9, letterSpacing:"0.15em", color:"#444", marginBottom:8, textTransform:"uppercase" },
+    kpi: { background:"#111", border:"1px solid #1e1e1e", borderRadius:6, padding: isMobile ? 12 : 16 },
+    g2: { display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:12 },
+    g4: { display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap:10 },
+    g21: { display:"grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap:12 },
+    hab: (d) => ({ display:"flex", alignItems:"center", gap:10, padding: isMobile ? "12px 12px" : "9px 12px", borderRadius:5, border:`1px solid ${d?"#00e676":"#1e1e1e"}`, background:d?"#0d2a1a":"#0f0f0f", cursor:"pointer", transition:"all 0.15s", userSelect:"none", minHeight: isMobile ? 48 : "auto" }),
+    chk: (d) => ({ width: isMobile ? 22 : 18, height: isMobile ? 22 : 18, borderRadius:3, border:`2px solid ${d?"#00e676":"#333"}`, background:d?"#00e676":"transparent", display:"flex", alignItems:"center", justifyContent:"center", fontSize: isMobile ? 12 : 10, color:"#080808", flexShrink:0 }),
     ev: { display:"flex", gap:10, padding:"9px 12px", borderRadius:4, background:"#0f0f0f", borderLeft:"3px solid #00e676", marginBottom:6 },
     never: { display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:4, background:"#180808", borderLeft:"2px solid #e74c3c", marginBottom:5, fontSize:12 },
     rule: { display:"flex", gap:10, padding:"9px 12px", borderRadius:4, background:"#0f0f0f", marginBottom:7, alignItems:"flex-start" },
@@ -450,17 +462,24 @@ export default function Dashboard() {
     <div style={S.app}>
       {/* HEADER */}
       <div style={S.hdr}>
-        <div>
-          <div style={{ fontFamily:"monospace", fontWeight:700, fontSize:16, letterSpacing:"0.08em" }}>
-            JAY <span style={{ color:"#00e676" }}>WILLIAMS</span>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width: isMobile ? "100%" : "auto", gap:8 }}>
+          <div>
+            <div style={{ fontFamily:"monospace", fontWeight:700, fontSize: isMobile ? 14 : 16, letterSpacing:"0.08em" }}>
+              JAY <span style={{ color:"#00e676" }}>WILLIAMS</span>
+            </div>
+            {!isMobile && <div style={{ fontFamily:"monospace", fontSize:9, color:"#444", letterSpacing:"0.12em" }}>ASCEND MARKETING // STAGE 4 // KORTRIJK</div>}
           </div>
-          <div style={{ fontFamily:"monospace", fontSize:9, color:"#444", letterSpacing:"0.12em" }}>ASCEND MARKETING // STAGE 4 // KORTRIJK</div>
+          {!isMobile && (
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontFamily:"monospace", fontSize:11, color:"#00e676", letterSpacing:"0.06em" }}>{todayStr}</div>
+              <div style={{ fontFamily:"monospace", fontSize:9, color:"#444" }}>30-DAY PROTOCOL</div>
+            </div>
+          )}
+          {isMobile && (
+            <div style={{ fontFamily:"monospace", fontSize:9, color:"#00e676" }}>{todayStr.split(" ").slice(0,3).join(" ")}</div>
+          )}
         </div>
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontFamily:"monospace", fontSize:11, color:"#00e676", letterSpacing:"0.06em" }}>{todayStr}</div>
-          <div style={{ fontFamily:"monospace", fontSize:9, color:"#444" }}>30-DAY PROTOCOL</div>
-        </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+        <div style={{ display:"flex", gap: isMobile ? 6 : 10, alignItems:"center", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
           {nextAlert && (
             <div style={{ background: daysToShop <= 1 ? "#130808" : "#0d0900", border:`1px solid ${daysToShop <= 1 ? "#e74c3c" : "#ff6d00"}`, borderRadius:4, padding:"6px 12px", textAlign:"center", cursor:"pointer" }} onClick={() => setTab("shopping")}>
               <div style={{ fontFamily:"monospace", fontWeight:700, fontSize:18, color: daysToShop <= 1 ? "#e74c3c" : "#ff6d00", lineHeight:1 }}>
@@ -513,7 +532,7 @@ export default function Dashboard() {
             {/* Habit checklist */}
             <div style={S.card}>
               <div style={S.lbl}>// DAILY LOCK-IN — {todayStr}</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 }}>
+              <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:7 }}>
                 {HABITS.map(h => (
                   <div key={h.id} style={S.hab(!!todayHabits[h.id])} onClick={() => toggleHabit(h.id)}>
                     <div style={S.chk(!!todayHabits[h.id])}>{todayHabits[h.id] ? "✓" : ""}</div>
