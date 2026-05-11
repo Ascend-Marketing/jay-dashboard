@@ -393,32 +393,34 @@ export default function Dashboard() {
     setCalLoading(true); setCalEvents(null);
     try {
       const isoDate = getKey(date);
-      const dateStr = date.toLocaleDateString("nl-BE", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: `You are a calendar assistant. Fetch Google Calendar events for ${isoDate} and return ONLY a JSON array. Each item: { "title": string, "startTime": string, "endTime": string, "location": string }. No markdown, no explanation, just the JSON array.`,
-          messages: [{ role: "user", content: `Get all calendar events for ${dateStr} (${isoDate}).` }],
-          mcp_servers: [{ type:"url", url:"https://calendarmcp.googleapis.com/mcp/v1", name:"gcal" }],
-        }),
-      });
+      const calendarId = "jaywilliams.jw5@gmail.com";
+      const apiKey = "AIzaSyCLHk6aQuAb-M3fbOkaonyMf2Cifeh7MBs";
+      const timeMin = `${isoDate}T00:00:00+02:00`;
+      const timeMax = `${isoDate}T23:59:59+02:00`;
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
+      const resp = await fetch(url);
       const data = await resp.json();
-      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("") || "[]";
-      try {
-        const clean = text.replace(/```json|```/g, "").trim();
-        const start = clean.indexOf("["); const end = clean.lastIndexOf("]");
-        const events = JSON.parse(clean.slice(start, end + 1));
-        setCalEvents(Array.isArray(events) ? events : []);
-      } catch { setCalEvents([]); }
+      if (data.error) { setCalEvents([]); setCalLoading(false); return; }
+      const events = (data.items || []).map(ev => ({
+        title: ev.summary || "Geen titel",
+        startTime: ev.start?.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString("nl-BE", { hour:"2-digit", minute:"2-digit" }) : "Hele dag",
+        endTime: ev.end?.dateTime ? new Date(ev.end.dateTime).toLocaleTimeString("nl-BE", { hour:"2-digit", minute:"2-digit" }) : "",
+        location: ev.location || "",
+      }));
+      setCalEvents(events);
     } catch { setCalEvents([]); }
     setCalLoading(false);
   }, []);
 
   useEffect(() => {
     if (tab === "calendar" || tab === "today") fetchCalendar(calDate);
+  }, [tab, calDateOffset]);
+
+  // Auto-refresh calendar every 5 minutes
+  useEffect(() => {
+    if (tab !== "calendar" && tab !== "today") return;
+    const interval = setInterval(() => fetchCalendar(calDate), 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [tab, calDateOffset]);
 
   const heatData = Array.from({ length: 30 }, (_, i) => {
@@ -603,7 +605,9 @@ export default function Dashboard() {
             <div style={S.card}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                 <div style={{ fontFamily:"monospace", fontSize:9, letterSpacing:"0.18em", color:"#444", textTransform:"uppercase" }}>// AGENDA VANDAAG</div>
-                <div style={{ fontFamily:"monospace", fontSize:8, color:"#333" }}>via Google Calendar</div>
+                <button onClick={() => fetchCalendar(calDate)} style={{ background:"none", border:"1px solid #333", color:"#555", borderRadius:3, padding:"3px 8px", cursor:"pointer", fontFamily:"monospace", fontSize:9 }}>
+                  {calLoading ? "⟳" : "↺ REFRESH"}
+                </button>
               </div>
               {calLoading ? <div style={{ color:"#444", fontFamily:"monospace", fontSize:11 }}>⟳ Laden...</div>
                 : calEvents && calEvents.length > 0 ? calEvents.map((ev, i) => (
@@ -772,7 +776,7 @@ export default function Dashboard() {
           <div style={{ flex:1, textAlign:"center", fontFamily:"monospace", fontWeight:700, fontSize:14, color:"#00e676" }}>{calStr}</div>
           <button onClick={() => setCalDateOffset(d => d + 1)} style={{ background:"#0f0f0f", border:"1px solid #1e1e1e", color:"#f0ede8", padding:"7px 14px", borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontSize:10 }}>NEXT →</button>
           <button onClick={() => setCalDateOffset(0)} style={{ background:"#00e676", border:"none", color:"#080808", padding:"7px 14px", borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontSize:10, fontWeight:700 }}>TODAY</button>
-          <button onClick={() => fetchCalendar(calDate)} style={{ background:"#0f0f0f", border:"1px solid #00e676", color:"#00e676", padding:"7px 14px", borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontSize:10 }}>↺ REFRESH</button>
+          <button onClick={() => fetchCalendar(calDate)} style={{ background:"#0f0f0f", border:"1px solid #00e676", color:"#00e676", padding:"7px 14px", borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontSize:10 }}>{calLoading ? "⟳ LADEN..." : "↺ REFRESH"}</button>
         </div>
         <div style={S.g2}>
           <div style={S.card}>
